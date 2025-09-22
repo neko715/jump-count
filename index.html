@@ -9,11 +9,19 @@
       font-family: sans-serif;
       text-align: center;
       padding: 20px;
-      background: #f8f9fa;
+      background: #f0f4f8;
+      color: #333;
     }
     h1 {
       font-size: 2em;
-      margin-bottom: 20px;
+      margin-bottom: 10px;
+    }
+    .info {
+      font-size: 1em;
+      background: #fffae6;
+      padding: 10px;
+      border-radius: 10px;
+      margin-bottom: 15px;
     }
     label {
       display: block;
@@ -48,38 +56,54 @@
 </head>
 <body>
   <h1>ジャンプカウンター</h1>
-  <label>何回ごとに音を鳴らしますか？：
+
+  <div class="info">
+    使い方：スマホをポケットや手に持ってジャンプしてください。<br>
+    ※消音モードは解除し、音量を上げてください。<br>
+    スタートボタンを押してからジャンプを測定します。<br>
+    正常にカウントされない場合は、下の感度を調整してください。
+  </div>
+
+  <label>何回ごとに音を鳴らす？：
     <input type="number" id="intervalInput" value="10">
   </label>
+
+  <label>ジャンプ感度（Z軸しきい値）：
+    <input type="number" id="thresholdInput" value="18" step="1">
+  </label>
+
   <button onclick="startCounter()">開始</button>
 
   <p>ジャンプ回数</p>
   <div id="count">0</div>
-
-  <audio id="beep" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
+  <p>累計ジャンプ回数（保存済み）: <span id="total">0</span></p>
 
   <script>
     let count = 0;
     let interval = 10;
+    let threshold = 18;
     let isJumping = false;
-    let beep;
+    let totalCount = 0;
+
+    // ローカルストレージから過去の合計回数とintervalを読み込む
+    if(localStorage.getItem('totalCount')) {
+      totalCount = parseInt(localStorage.getItem('totalCount'));
+    }
+    if(localStorage.getItem('savedInterval')) {
+      document.getElementById('intervalInput').value = localStorage.getItem('savedInterval');
+    }
+    document.getElementById('total').textContent = totalCount;
 
     function startCounter() {
       interval = parseInt(document.getElementById("intervalInput").value, 10);
+      threshold = parseInt(document.getElementById("thresholdInput").value, 10);
       count = 0;
       document.getElementById("count").textContent = count;
 
-      beep = document.getElementById("beep");
+      // 保存
+      localStorage.setItem('savedInterval', interval);
 
-      // 音を一度だけ無音再生 → iOSの再生制限を回避
-      beep.volume = 0;
-      beep.play().then(() => {
-        beep.pause();
-        beep.currentTime = 0;
-        beep.volume = 1; // 音量を戻す
-      });
-
-      alert(interval + "回ごとに音を鳴らします！");
+      alert(interval + "回ごとに音声でお知らせします。消音モードを解除して音量を上げてください。");
 
       if (typeof DeviceMotionEvent.requestPermission === "function") {
         DeviceMotionEvent.requestPermission().then(response => {
@@ -98,22 +122,26 @@
       let acc = event.accelerationIncludingGravity;
       if (!acc) return;
 
-      // Z軸（上下方向）の加速度
       let z = acc.z;
 
-      // ジャンプ検出（しきい値は調整可能）
-      if (z > 18 && !isJumping) {
+      if (z > threshold && !isJumping) {
         isJumping = true;
         count++;
+        totalCount++;
         document.getElementById("count").textContent = count;
+        document.getElementById("total").textContent = totalCount;
+
+        // 合計回数を保存
+        localStorage.setItem('totalCount', totalCount);
 
         if (count % interval === 0) {
-          beep.currentTime = 0;
-          beep.play();
+          const msg = new SpeechSynthesisUtterance(count + "回です");
+          msg.lang = "ja-JP";
+          window.speechSynthesis.speak(msg);
         }
       }
 
-      if (z < 10) {
+      if (z < threshold - 8) { // 着地タイミング
         isJumping = false;
       }
     }
