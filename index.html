@@ -3,6 +3,48 @@
 <head>
   <meta charset="UTF-8">
   <title>ジャンプカウンター</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 20px;
+      background: #f8f9fa;
+    }
+    h1 {
+      font-size: 2em;
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin: 10px 0;
+      font-size: 1.2em;
+    }
+    input {
+      font-size: 1.2em;
+      padding: 5px;
+      width: 120px;
+      text-align: center;
+    }
+    button {
+      font-size: 1.5em;
+      padding: 15px 30px;
+      margin: 20px 0;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 10px;
+    }
+    p {
+      font-size: 1.5em;
+      margin-top: 20px;
+    }
+    #count {
+      font-size: 2.5em;
+      font-weight: bold;
+      color: #e63946;
+    }
+  </style>
 </head>
 <body>
   <h1>ジャンプカウンター</h1>
@@ -11,13 +53,14 @@
   </label>
   <button onclick="startCounter()">開始</button>
 
-  <p>ジャンプ回数：<span id="count">0</span></p>
+  <p>ジャンプ回数</p>
+  <div id="count">0</div>
+
   <audio id="beep" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
 
   <script>
     let count = 0;
     let interval = 10;
-    let lastAcceleration = 0;
     let isJumping = false;
 
     function startCounter() {
@@ -27,14 +70,14 @@
       alert(interval + "回ごとに音を鳴らします！");
 
       if (typeof DeviceMotionEvent.requestPermission === "function") {
-        // iOSの場合、センサー使用の許可をリクエスト
         DeviceMotionEvent.requestPermission().then(response => {
           if (response === "granted") {
             window.addEventListener("devicemotion", detectJump);
+          } else {
+            alert("加速度センサーの利用が許可されませんでした。");
           }
         });
       } else {
-        // AndroidやPC（センサーがある場合）
         window.addEventListener("devicemotion", detectJump);
       }
     }
@@ -43,11 +86,11 @@
       let acc = event.accelerationIncludingGravity;
       if (!acc) return;
 
-      // 上下方向（y軸）の加速度を使用
-      let y = acc.y;
+      // Z軸（上下方向）の加速度を使用
+      let z = acc.z;
 
-      // ジャンプ検知：加速度が一定以上に変化したらカウント
-      if (y > 15 && !isJumping) {
+      // ジャンプのピークを検出（数値は調整可能）
+      if (z > 18 && !isJumping) {
         isJumping = true;
         count++;
         document.getElementById("count").textContent = count;
@@ -57,8 +100,8 @@
         }
       }
 
-      // 地面に着いたっぽいタイミングでリセット
-      if (y < 5) {
+      // 地面に戻ったらリセット
+      if (z < 10) {
         isJumping = false;
       }
     }
