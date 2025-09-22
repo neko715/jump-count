@@ -62,11 +62,23 @@
     let count = 0;
     let interval = 10;
     let isJumping = false;
+    let beep;
 
     function startCounter() {
       interval = parseInt(document.getElementById("intervalInput").value, 10);
       count = 0;
       document.getElementById("count").textContent = count;
+
+      beep = document.getElementById("beep");
+
+      // 音を一度だけ無音再生 → iOSの再生制限を回避
+      beep.volume = 0;
+      beep.play().then(() => {
+        beep.pause();
+        beep.currentTime = 0;
+        beep.volume = 1; // 音量を戻す
+      });
+
       alert(interval + "回ごとに音を鳴らします！");
 
       if (typeof DeviceMotionEvent.requestPermission === "function") {
@@ -86,21 +98,21 @@
       let acc = event.accelerationIncludingGravity;
       if (!acc) return;
 
-      // Z軸（上下方向）の加速度を使用
+      // Z軸（上下方向）の加速度
       let z = acc.z;
 
-      // ジャンプのピークを検出（数値は調整可能）
+      // ジャンプ検出（しきい値は調整可能）
       if (z > 18 && !isJumping) {
         isJumping = true;
         count++;
         document.getElementById("count").textContent = count;
 
         if (count % interval === 0) {
-          document.getElementById("beep").play();
+          beep.currentTime = 0;
+          beep.play();
         }
       }
 
-      // 地面に戻ったらリセット
       if (z < 10) {
         isJumping = false;
       }
