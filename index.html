@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>ジャンプカウンター</title>
+</head>
+<body>
+  <h1>ジャンプカウンター</h1>
+  <label>何回ごとに音を鳴らす？：
+    <input type="number" id="intervalInput" value="10">
+  </label>
+  <button onclick="startCounter()">開始</button>
+
+  <p>ジャンプ回数：<span id="count">0</span></p>
+  <audio id="beep" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
+
+  <script>
+    let count = 0;
+    let interval = 10;
+    let lastAcceleration = 0;
+    let isJumping = false;
+
+    function startCounter() {
+      interval = parseInt(document.getElementById("intervalInput").value, 10);
+      count = 0;
+      document.getElementById("count").textContent = count;
+      alert(interval + "回ごとに音を鳴らします！");
+
+      if (typeof DeviceMotionEvent.requestPermission === "function") {
+        // iOSの場合、センサー使用の許可をリクエスト
+        DeviceMotionEvent.requestPermission().then(response => {
+          if (response === "granted") {
+            window.addEventListener("devicemotion", detectJump);
+          }
+        });
+      } else {
+        // AndroidやPC（センサーがある場合）
+        window.addEventListener("devicemotion", detectJump);
+      }
+    }
+
+    function detectJump(event) {
+      let acc = event.accelerationIncludingGravity;
+      if (!acc) return;
+
+      // 上下方向（y軸）の加速度を使用
+      let y = acc.y;
+
+      // ジャンプ検知：加速度が一定以上に変化したらカウント
+      if (y > 15 && !isJumping) {
+        isJumping = true;
+        count++;
+        document.getElementById("count").textContent = count;
+
+        if (count % interval === 0) {
+          document.getElementById("beep").play();
+        }
+      }
+
+      // 地面に着いたっぽいタイミングでリセット
+      if (y < 5) {
+        isJumping = false;
+      }
+    }
+  </script>
+</body>
+</html>
